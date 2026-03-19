@@ -1,0 +1,73 @@
+# hello-telemetry Project Intelligence
+
+## Project Purpose
+Educational OpenTelemetry demo for Udemy course. Focus is on learning observability concepts, not production-grade implementation.
+
+## Key Patterns
+
+### Build Workflow
+1. **Always build Java WAR first**: `cd java-app && mvn clean package` before `docker-compose up`
+2. **WAR location matters**: Maven outputs to `tomcat/MyWebApp.war` - this is expected by Dockerfile
+3. **No Python build step**: Python service builds automatically via Dockerfile
+
+### Service Communication
+- Services use **container names** for discovery: `ht-mysql`, `ht-python-service`, etc.
+- All services on `ht_network` Docker network
+- Java app connects to MySQL at `jdbc:mysql://ht-mysql:3306/mydatabase`
+- Java app calls Python at `http://ht-python-service:5000/compute_average_age`
+
+### Observability Configuration
+- Collector config is **mounted as volume** - changes require container restart
+- Collector receives on ports 4317 (gRPC) and 4318 (HTTP)
+- Jaeger UI accessible at `http://localhost:16686`
+- Metrics exposed at `http://localhost:8888/metrics`
+
+## Important Notes
+
+### Instrumentation Status
+- **Current State**: Infrastructure is configured, but actual OpenTelemetry SDK instrumentation appears to be missing from code
+- **Java**: No OpenTelemetry dependencies in `pom.xml`
+- **Python**: No OpenTelemetry packages in `requirements.txt`
+- **Implication**: This may be intentional for course exercises where students add instrumentation
+
+### Configuration Quirks
+- Collector sends traces to `http://ht-jaeger:4317` but Jaeger all-in-one typically uses port 14250 for OTLP
+- JMX configured for localhost only (not production-ready)
+- No authentication on any services (educational/demo only)
+
+### File Structure
+- Java source: `java-app/src/main/java/com/bbsod/demo/`
+- Web resources: `java-app/src/main/webapp/`
+- Built artifacts: `java-app/target/` and `tomcat/MyWebApp.war`
+- Python service: `python-service/compute.py`
+- Database init: `initdb/init.sql`
+
+## Development Preferences
+- Keep code simple and readable (educational focus)
+- Use Docker Compose for all orchestration
+- Prefer explicit configuration over magic
+- Document observability concepts clearly
+
+## Common Tasks
+
+### Starting the Stack
+```bash
+cd java-app && mvn clean package
+cd .. && docker-compose up --build
+```
+
+### Accessing Services
+- Web App: http://localhost:8085
+- Jaeger UI: http://localhost:16686
+- Metrics: http://localhost:8888/metrics
+
+### Debugging
+- Check Collector logs: `docker logs ht-otel-collector`
+- Check service logs: `docker logs ht-tomcat` or `docker logs ht-python-service`
+- Collector debug exporter shows all telemetry in logs
+
+## Future Considerations
+- May need to add OpenTelemetry SDK dependencies
+- May need to add instrumentation code
+- Consider adding more instrumentation examples
+- May need to fix Jaeger endpoint configuration
